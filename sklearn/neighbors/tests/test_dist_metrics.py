@@ -8,6 +8,8 @@ import scipy
 from scipy.spatial.distance import cdist
 from sklearn.neighbors.dist_metrics import DistanceMetric
 from nose import SkipTest
+from sklearn.neighbors import BallTree
+from sklearn.utils.testing import assert_raises_regexp
 
 
 def dist_func(x1, x2, p):
@@ -169,3 +171,16 @@ def test_pyfunc_metric():
 
     assert_array_almost_equal(D1, D2)
     assert_array_almost_equal(D1_pkl, D2_pkl)
+
+
+def test_correct_return_type():
+    def wrong_distance(x, y):
+        return "1"
+
+    n_samples = 5
+    n_dim = 2
+    X = np.asarray(range(n_samples * n_dim)).reshape(n_samples, n_dim)
+    assert_raises_regexp(TypeError,
+                        'Custom distance function must accept two vectors and '
+                        'return a float.',
+                        BallTree, X, metric=wrong_distance)
