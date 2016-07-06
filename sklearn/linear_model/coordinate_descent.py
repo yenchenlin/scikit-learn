@@ -426,7 +426,7 @@ def enet_path(X, y, l1_ratio=0.5, eps=1e-3, n_alphas=100, alphas=None,
     n_alphas = len(alphas)
     tol = params.get('tol', 1e-4)
     max_iter = params.get('max_iter', 1000)
-    dual_gaps = np.empty(n_alphas)
+    dual_gaps = np.empty(n_alphas, dtype=X.dtype)
     n_iters = []
 
     rng = check_random_state(params.get('random_state', None))
@@ -477,6 +477,14 @@ def enet_path(X, y, l1_ratio=0.5, eps=1e-3, n_alphas=100, alphas=None,
         coefs[..., i] = coef_
         dual_gaps[i] = dual_gap_
         n_iters.append(n_iter_)
+
+        print "-----Model-----"
+        print "coef: ", coef_
+        print "dual_gap_: ", dual_gap_
+        print "eps_: ", eps_
+        print "n_iter: ", n_iter_
+        print "---------------"
+
         if dual_gap_ > eps_:
             warnings.warn('Objective did not converge.' +
                           ' You might want' +
@@ -727,6 +735,7 @@ class ElasticNet(LinearModel, RegressorMixin):
                 this_Xy = Xy[:, k]
             else:
                 this_Xy = None
+            print "Start"
             _, this_coef, this_dual_gap, this_iter = \
                 self.path(X, y[:, k],
                           l1_ratio=self.l1_ratio, eps=None,
@@ -739,6 +748,7 @@ class ElasticNet(LinearModel, RegressorMixin):
                           random_state=self.random_state,
                           selection=self.selection,
                           check_input=False)
+            print "End"
             coef_[k] = this_coef[:, 0]
             dual_gaps_[k] = this_dual_gap[0]
             self.n_iter_.append(this_iter[0])
