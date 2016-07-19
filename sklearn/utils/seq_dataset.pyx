@@ -11,20 +11,22 @@ from libc.limits cimport INT_MAX
 cimport numpy as np
 import numpy as np
 
+from cython cimport floating
+
 np.import_array()
 
 
 cdef class SequentialDataset:
     """Base class for datasets with sequential data access. """
 
-    cdef void next(self, double **x_data_ptr, int **x_ind_ptr,
+    cdef void next(self, floating **x_data_ptr, int **x_ind_ptr,
                    int *nnz, double *y, double *sample_weight) nogil:
         """Get the next example ``x`` from the dataset.
 
         Parameters
         ----------
-        x_data_ptr : double**
-            A pointer to the double array which holds the feature
+        x_data_ptr : floating**
+            A pointer to the floating array which holds the feature
             values of the next example.
 
         x_ind_ptr : np.intc**
@@ -45,14 +47,14 @@ cdef class SequentialDataset:
         self._sample(x_data_ptr, x_ind_ptr, nnz, y, sample_weight,
                      current_index)
 
-    cdef int random(self, double **x_data_ptr, int **x_ind_ptr,
+    cdef int random(self, floating **x_data_ptr, int **x_ind_ptr,
                     int *nnz, double *y, double *sample_weight) nogil:
         """Get a random example ``x`` from the dataset.
 
         Parameters
         ----------
-        x_data_ptr : double**
-            A pointer to the double array which holds the feature
+        x_data_ptr : floating**
+            A pointer to the floating array which holds the feature
             values of the next example.
 
         x_ind_ptr : np.intc**
@@ -104,7 +106,7 @@ cdef class SequentialDataset:
         self.current_index = current_index
         return current_index
 
-    cdef void _sample(self, double **x_data_ptr, int **x_ind_ptr,
+    cdef void _sample(self, floating **x_data_ptr, int **x_ind_ptr,
                       int *nnz, double *y, double *sample_weight,
                       int current_index) nogil:
         pass
@@ -125,7 +127,7 @@ cdef class SequentialDataset:
 
     def _sample_py(self, int current_index):
         """python function used for easy testing"""
-        cdef double* x_data_ptr
+        cdef floating* x_data_ptr
         cdef int* x_indices_ptr
         cdef int nnz, j
         cdef double y, sample_weight
@@ -135,7 +137,7 @@ cdef class SequentialDataset:
                      current_index)
 
         # transform the pointed data in numpy CSR array
-        cdef np.ndarray[double, ndim=1] x_data = np.empty(nnz)
+        cdef np.ndarray[floating, ndim=1] x_data = np.empty(nnz)
         cdef np.ndarray[int, ndim=1] x_indices = np.empty(nnz, dtype=np.int32)
         cdef np.ndarray[int, ndim=1] x_indptr = np.asarray([0, nnz],
                                                            dtype=np.int32)
@@ -151,11 +153,11 @@ cdef class SequentialDataset:
 cdef class ArrayDataset(SequentialDataset):
     """Dataset backed by a two-dimensional numpy array.
 
-    The dtype of the numpy array is expected to be ``np.float64`` (double)
+    The dtype of the numpy array is expected to be ``floating`` (floating)
     and C-style memory layout.
     """
 
-    def __cinit__(self, np.ndarray[double, ndim=2, mode='c'] X,
+    def __cinit__(self, np.ndarray[floating, ndim=2, mode='c'] X,
                   np.ndarray[double, ndim=1, mode='c'] Y,
                   np.ndarray[double, ndim=1, mode='c'] sample_weights,
                   np.uint32_t seed=1):
@@ -163,7 +165,7 @@ cdef class ArrayDataset(SequentialDataset):
 
         Parameters
         ----------
-        X : ndarray, dtype=double, ndim=2, mode='c'
+        X : ndarray, dtype=floating, ndim=2, mode='c'
             The sample array, of shape(n_samples, n_features)
 
         Y : ndarray, dtype=double, ndim=1, mode='c'
@@ -192,7 +194,7 @@ cdef class ArrayDataset(SequentialDataset):
 
         self.current_index = -1
         self.X_stride = X.strides[0] / X.itemsize
-        self.X_data_ptr = <double *>X.data
+        self.X_data_ptr = <floating *>X.data
         self.Y_data_ptr = <double *>Y.data
         self.sample_weight_data = <double *>sample_weights.data
 
@@ -204,7 +206,7 @@ cdef class ArrayDataset(SequentialDataset):
         # seed should not be 0 for our_rand_r
         self.seed = max(seed, 1)
 
-    cdef void _sample(self, double **x_data_ptr, int **x_ind_ptr,
+    cdef void _sample(self, floating **x_data_ptr, int **x_ind_ptr,
                       int *nnz, double *y, double *sample_weight,
                       int current_index) nogil:
         cdef long long sample_idx = self.index_data_ptr[current_index]
