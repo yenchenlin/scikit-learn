@@ -11,6 +11,7 @@ cimport numpy as np
 import scipy.sparse as sp
 from libc.math cimport fabs, exp, log
 from libc.time cimport time, time_t
+from cython cimport floating
 
 from ..utils.seq_dataset cimport SequentialDataset
 from .sgd_fast cimport LossFunction
@@ -162,7 +163,7 @@ def _multinomial_grad_loss_all_samples(
     cdef double* weights = <double * >weights_array.data
     cdef double* intercept = <double * >intercept_array.data
 
-    cdef double *x_data_ptr = NULL
+    cdef floating *x_data_ptr = NULL
     cdef int *x_ind_ptr = NULL
     cdef int xnnz = -1
     cdef double y
@@ -245,7 +246,7 @@ def sag(SequentialDataset dataset,
     (section 4.3)
     """
     # the data pointer for x, the current sample
-    cdef double *x_data_ptr = NULL
+    cdef floating *x_data_ptr = NULL
     # the index pointer for the column of the data
     cdef int *x_ind_ptr = NULL
     # the number of non-zero features for current sample
@@ -517,7 +518,7 @@ cdef double scale_weights(double* weights, double wscale, int n_features,
     return 1.0
 
 
-cdef void predict_sample(double* x_data_ptr, int* x_ind_ptr, int xnnz,
+cdef void predict_sample(floating* x_data_ptr, int* x_ind_ptr, int xnnz,
                          double* w_data_ptr, double wscale, double* intercept,
                          double* prediction, int n_classes) nogil:
     """Compute the prediction given sparse sample x and dense weight w.
