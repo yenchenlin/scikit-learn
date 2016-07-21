@@ -214,96 +214,112 @@ def enet_coordinate_descent(np.ndarray[floating, ndim=1] w,
         warnings.warn("Coordinate descent with alpha=0 may lead to unexpected"
             " results and is discouraged.")
 
-    with nogil:
-        # R = y - np.dot(X, w)
-        for i in range(n_samples):
-            R[i] = y[i] - dot(n_features, &X_data[i], n_samples, w_data, 1)
+    print("before algo start")
+    # R = y - np.dot(X, w)
+    for i in range(n_samples):
+        R[i] = y[i] - dot(n_features, &X_data[i], n_samples, w_data, 1)
 
-        # tol *= np.dot(y, y)
-        tol *= dot(n_samples, y_data, n_tasks, y_data, n_tasks)
+    # tol *= np.dot(y, y)
+    tol *= dot(n_samples, y_data, n_tasks, y_data, n_tasks)
 
-        for n_iter in range(max_iter):
-            w_max = 0.0
-            d_w_max = 0.0
-            for f_iter in range(n_features):  # Loop over coordinates
-                if random:
-                    ii = rand_int(n_features, rand_r_state)
-                else:
-                    ii = f_iter
+    for n_iter in range(max_iter):
+        print("each iteration start")
+        w_max = 0.0
+        d_w_max = 0.0
+        for f_iter in range(n_features):  # Loop over coordinates
+            if random:
+                ii = rand_int(n_features, rand_r_state)
+            else:
+                ii = f_iter
 
-                if norm_cols_X[ii] == 0.0:
-                    continue
+            if norm_cols_X[ii] == 0.0:
+                continue
 
-                w_ii = w[ii]  # Store previous value
+            w_ii = w[ii]  # Store previous value
 
-                if w_ii != 0.0:
-                    # R += w_ii * X[:,ii]
-                    axpy(n_samples, w_ii, &X_data[ii * n_samples], 1,
-                         R_data, 1)
+            if w_ii != 0.0:
+                # R += w_ii * X[:,ii]
+                axpy(n_samples, w_ii, &X_data[ii * n_samples], 1,
+                        R_data, 1)
 
-                # tmp = (X[:,ii]*R).sum()
-                tmp = dot(n_samples, &X_data[ii * n_samples], 1, R_data, 1)
+            # tmp = (X[:,ii]*R).sum()
+            tmp = dot(n_samples, &X_data[ii * n_samples], 1, R_data, 1)
 
-                if positive and tmp < 0:
-                    w[ii] = 0.0
-                else:
-                    w[ii] = (fsign(tmp) * fmax(fabs(tmp) - alpha, 0)
-                            / (norm_cols_X[ii] + beta))
+            if positive and tmp < 0:
+                w[ii] = 0.0
+                print("line250")
+            else:
+                w[ii] = (fsign(tmp) * fmax(fabs(tmp) - alpha, 0)
+                        / (norm_cols_X[ii] + beta))
+                print("line254")
+            print("line 255")
+            print(w[ii])
+            if w[ii] != 0.0:
+                # R -=  w[ii] * X[:,ii] # Update residual
 
-                if w[ii] != 0.0:
-                    # R -=  w[ii] * X[:,ii] # Update residual
-                    axpy(n_samples, -w[ii], &X_data[ii * n_samples], 1,
-                         R_data, 1)
+                print("line 260")
+                print(R_data)
+                print(X_data[ii * n_samples])
+                axpy(n_samples, -w[ii], &X_data[ii * n_samples], 1,
+                        R_data, 1)
 
-                # update the maximum absolute coefficient update
-                d_w_ii = fabs(w[ii] - w_ii)
-                if d_w_ii > d_w_max:
-                    d_w_max = d_w_ii
+                print("axpy end")
+            # update the maximum absolute coefficient update
 
-                if fabs(w[ii]) > w_max:
-                    w_max = fabs(w[ii])
+            print("line 266")
+            d_w_ii = fabs(w[ii] - w_ii)
+            if d_w_ii > d_w_max:
+                d_w_max = d_w_ii
 
-            if (w_max == 0.0
-                or d_w_max / w_max < d_w_tol
-                or n_iter == max_iter - 1):
-                # the biggest coordinate update of this iteration was smaller
-                # than the tolerance: check the duality gap as ultimate
-                # stopping criterion
+            if fabs(w[ii]) > w_max:
+                w_max = fabs(w[ii])
+        print("line 273")
 
-                # XtA = np.dot(X.T, R) - beta * w
-                for i in range(n_features):
-                    XtA[i] = dot(n_samples, &X_data[i * n_samples],
-                                 1, R_data, 1) - beta * w[i]
+        if (w_max == 0.0
+            or d_w_max / w_max < d_w_tol
+            or n_iter == max_iter - 1):
+            # the biggest coordinate update of this iteration was smaller
+            # than the tolerance: check the duality gap as ultimate
+            # stopping criterion
 
-                if positive:
-                    dual_norm_XtA = max(n_features, XtA_data)
-                else:
-                    dual_norm_XtA = abs_max(n_features, XtA_data)
+            # XtA = np.dot(X.T, R) - beta * w
+            for i in range(n_features):
+                XtA[i] = dot(n_samples, &X_data[i * n_samples],
+                                1, R_data, 1) - beta * w[i]
 
-                # R_norm2 = np.dot(R, R)
-                R_norm2 = dot(n_samples, R_data, 1, R_data, 1)
+            if positive:
+                dual_norm_XtA = max(n_features, XtA_data)
+            else:
+                dual_norm_XtA = abs_max(n_features, XtA_data)
 
-                # w_norm2 = np.dot(w, w)
-                w_norm2 = dot(n_features, w_data, 1, w_data, 1)
+            # R_norm2 = np.dot(R, R)
+            R_norm2 = dot(n_samples, R_data, 1, R_data, 1)
 
-                if (dual_norm_XtA > alpha):
-                    const = alpha / dual_norm_XtA
-                    A_norm2 = R_norm2 * (const ** 2)
-                    gap = 0.5 * (R_norm2 + A_norm2)
-                else:
-                    const = 1.0
-                    gap = R_norm2
+            # w_norm2 = np.dot(w, w)
+            w_norm2 = dot(n_features, w_data, 1, w_data, 1)
 
-                l1_norm = asum(n_features, w_data, 1)
+            print("line298")
 
-                # np.dot(R.T, y)
-                gap += (alpha * l1_norm
-                        - const * dot(n_samples, R_data, 1, y_data, n_tasks)
-                        + 0.5 * beta * (1 + const ** 2) * (w_norm2))
+            if (dual_norm_XtA > alpha):
+                const = alpha / dual_norm_XtA
+                A_norm2 = R_norm2 * (const ** 2)
+                gap = 0.5 * (R_norm2 + A_norm2)
+            else:
+                const = 1.0
+                gap = R_norm2
 
-                if gap < tol:
-                    # return if we reached desired tolerance
-                    break
+            l1_norm = asum(n_features, w_data, 1)
+
+            print("line308")
+            # np.dot(R.T, y)
+            gap += (alpha * l1_norm
+                    - const * dot(n_samples, R_data, 1, y_data, n_tasks)
+                    + 0.5 * beta * (1 + const ** 2) * (w_norm2))
+            print("line309")
+
+            if gap < tol:
+                # return if we reached desired tolerance
+                break
     return w, gap, tol, n_iter + 1
 
 
