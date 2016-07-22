@@ -152,6 +152,7 @@ from ..utils import check_array
 
 from typedefs cimport DTYPE_t, ITYPE_t, DITYPE_t
 from typedefs import DTYPE, ITYPE
+from cython cimport floating
 
 from dist_metrics cimport (DistanceMetric, euclidean_dist, euclidean_rdist,
                            euclidean_dist_to_rdist, euclidean_rdist_to_dist)
@@ -217,6 +218,16 @@ cdef DTYPE_t[::1] get_memview_DTYPE_1D(
 cdef DTYPE_t[:, ::1] get_memview_DTYPE_2D(
                                np.ndarray[DTYPE_t, ndim=2, mode='c'] X):
     return <DTYPE_t[:X.shape[0], :X.shape[1]:1]> (<DTYPE_t*> X.data)
+
+
+cdef float[:, ::1] get_memview_float_2D(
+                               np.ndarray[float, ndim=2, mode='c'] X):
+    return <float[:X.shape[0], :X.shape[1]:1]> (<float*> X.data)
+
+
+cdef (double*) get_pointer_DTYPE_2D(
+                               np.ndarray[double, ndim=2, mode='c'] X):
+    return (<double*> X.data)
 
 
 cdef DTYPE_t[:, :, ::1] get_memview_DTYPE_3D(
@@ -1006,6 +1017,8 @@ cdef class BinaryTree:
     cdef np.ndarray node_bounds_arr
 
     cdef readonly DTYPE_t[:, ::1] data
+    cdef void *another_data
+
     cdef public ITYPE_t[::1] idx_array
     cdef public NodeData_t[::1] node_data
     cdef public DTYPE_t[:, :, ::1] node_bounds
@@ -1034,6 +1047,8 @@ cdef class BinaryTree:
         self.node_bounds_arr = np.empty((1, 1, 1), dtype=DTYPE)
 
         self.data = get_memview_DTYPE_2D(self.data_arr)
+        self.another_data = get_pointer_DTYPE_2D(self.data_arr)
+
         self.idx_array = get_memview_ITYPE_1D(self.idx_array_arr)
         self.node_data = get_memview_NodeData_1D(self.node_data_arr)
         self.node_bounds = get_memview_DTYPE_3D(self.node_bounds_arr)
@@ -1051,8 +1066,10 @@ cdef class BinaryTree:
 
     def __init__(self, data,
                  leaf_size=40, metric='minkowski', **kwargs):
-        self.data_arr = np.asarray(data, dtype=DTYPE, order='C')
+        self.data_arr = check_array(data, dtype=np.float64, order='C')
+
         self.data = get_memview_DTYPE_2D(self.data_arr)
+        self.another_data = get_pointer_DTYPE_2D(self.data_arr)
 
         self.leaf_size = leaf_size
         self.dist_metric = DistanceMetric.get_metric(metric, **kwargs)
@@ -1072,8 +1089,11 @@ cdef class BinaryTree:
         if leaf_size < 1:
             raise ValueError("leaf_size must be greater than or equal to 1")
 
-        n_samples = self.data.shape[0]
-        n_features = self.data.shape[1]
+
+        cdef double[:, ::1] another_data = <double[:self.data_arr.shape[0],
+                                                   :self.data_arr.shape[1]:1]> self.another_data
+        n_samples = another_data.shape[0]
+        n_features = another_data.shape[1]
 
         # determine number of levels in the tree, and from this
         # the number of nodes in the tree.  This results in leaf nodes
