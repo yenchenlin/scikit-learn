@@ -48,6 +48,7 @@
  */
 #include "atlas_refmisc.h"
 #include "atlas_reflevel1.h"
+#include "stdio.h"
 
 void ATL_srefaxpy
 (
@@ -120,26 +121,36 @@ void ATL_srefaxpy
  * .. Executable Statements ..
  *
  */
+   printf("enter ATL_srefaxpy.c");
    if( ( N > 0 ) && ( alpha != ATL_sZERO ) )
    {
+      printf("enter first if");
       if( ( nu = ( N >> 2 ) << 2 ) != 0 )
       {
          StX = (float *)X + nu * INCX;
+         printf("enter second if");
+      if( ( nu = ( N >> 2 ) << 2 ) != 0 )
 
          do
          {
+            printf("136");
             x0 = (*X);     y0 = (*Y);     x1 = X[INCX ]; y1 = Y[INCY ];
+            printf("138");
             x2 = X[incX2]; y2 = Y[incY2]; x3 = X[incX3]; y3 = Y[incY3];
 
+            printf("141");
             *Y       = y0 + alpha * x0; Y[INCY ] = y1 + alpha * x1;
+            printf("143");
             Y[incY2] = y2 + alpha * x2; Y[incY3] = y3 + alpha * x3;
 
+            printf("144");
             X  += incX4;
             Y  += incY4;
 
+            printf("in while");
          } while( X != StX );
       }
-
+      printf("end first if");
       for( i = N - nu; i != 0; i-- )
       {
          x0  = (*X);
@@ -149,8 +160,10 @@ void ATL_srefaxpy
 
          X  += INCX;
          Y  += INCY;
+         printf("in last for");
       }
    }
+printf("end saxpy");
 /*
  * End of ATL_srefaxpy
  */

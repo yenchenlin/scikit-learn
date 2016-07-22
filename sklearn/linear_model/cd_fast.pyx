@@ -236,11 +236,28 @@ def enet_coordinate_descent(np.ndarray[floating, ndim=1] w,
                 continue
 
             w_ii = w[ii]  # Store previous value
-
+            print(w_ii)
+            print(R[0])
+            print(R[1])
+            print(R[2])
+            print(R[3])
+            print("line 240")
+            print(X[0])
             if w_ii != 0.0:
                 # R += w_ii * X[:,ii]
-                axpy(n_samples, w_ii, &X_data[ii * n_samples], 1,
-                        R_data, 1)
+                print("line 243")
+                if floating is float:
+                    saxpy(n_samples, w_ii,
+                          <float*>(X.data + ii * n_samples * sizeof(float)),
+                          1, <float*>R.data, 1)
+                else:
+                    daxpy(n_samples, w_ii,
+                          <DOUBLE*>(X.data + ii * n_samples * sizeof(DOUBLE)),
+                          1, <DOUBLE*>R.data, 1)
+
+
+                #axpy(n_samples, w_ii, &X_data[ii * n_samples], 1,
+                #        R_data, 1)
 
             # tmp = (X[:,ii]*R).sum()
             tmp = dot(n_samples, &X_data[ii * n_samples], 1, R_data, 1)
@@ -254,14 +271,23 @@ def enet_coordinate_descent(np.ndarray[floating, ndim=1] w,
                 print("line254")
             print("line 255")
             print(w[ii])
+            print(R[0])
             if w[ii] != 0.0:
                 # R -=  w[ii] * X[:,ii] # Update residual
 
                 print("line 260")
-                print(R_data)
                 print(X_data[ii * n_samples])
-                axpy(n_samples, -w[ii], &X_data[ii * n_samples], 1,
-                        R_data, 1)
+                if floating is float:
+                    saxpy(n_samples, -w_ii,
+                          <float*>(X.data + ii * n_samples * sizeof(float)),
+                          1, <float*>R.data, 1)
+                else:
+                    daxpy(n_samples, -w_ii,
+                          <DOUBLE*>(X.data + ii * n_samples * sizeof(DOUBLE)),
+                          1, <DOUBLE*>R.data, 1)
+
+                #axpy(n_samples, -w[ii], &X_data[ii * n_samples], 1,
+                #        R_data, 1)
 
                 print("axpy end")
             # update the maximum absolute coefficient update
