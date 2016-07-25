@@ -669,9 +669,7 @@ def test_lasso_non_float_y():
 def test_enet_float_precision():
     # Generate dataset
     X, y, X_test, y_test = build_dataset(n_samples=20, n_features=10)
-    # Here we have a small number of iterations, and thus the
-    # ElasticNet might not converge. This is to speed up tests
-    clf = ElasticNet(alpha=0.5, max_iter=100, precompute=False)
+    clf = ElasticNet(alpha=0.5, precompute=False)
 
     coef = {}
     for dtype in [np.float64, np.float32]:
