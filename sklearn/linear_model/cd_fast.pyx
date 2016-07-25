@@ -220,12 +220,19 @@ def enet_coordinate_descent(np.ndarray[floating, ndim=1] w,
     for i in range(n_samples):
         R[i] = y[i] - dot(n_features, &X_data[i], n_samples, w_data, 1)
 
+    print("init R")
+    print(R)
+
     # tol *= np.dot(y, y)
     tol *= dot(n_samples, y_data, n_tasks, y_data, n_tasks)
+
+    print("tol")
+    print(tol)
 
     for n_iter in range(max_iter):
         w_max = 0.0
         d_w_max = 0.0
+        print("w")
         print(w)
         for f_iter in range(n_features):  # Loop over coordinates
             if random:
@@ -249,16 +256,26 @@ def enet_coordinate_descent(np.ndarray[floating, ndim=1] w,
             else:
                 tmp = dot(n_samples, &X_data[ii * n_samples], 1, R_data, 1)
 
+            print("tmp:")
+            print(tmp)
+
             if positive and tmp < 0:
                 w[ii] = 0.0
             else:
                 w[ii] = (fsign(tmp) * fmax(fabs(tmp) - alpha, 0)
                         / (norm_cols_X[ii] + beta))
 
+            print("w[ii]:")
+            print(w[ii])
+
+
             if w[ii] != 0.0:
                 # R -=  w[ii] * X[:,ii] # Update residual
                 axpy(n_samples, -w[ii], &X_data[ii * n_samples], 1,
                         R_data, 1)
+
+            print("R")
+            print(R)
 
             # update the maximum absolute coefficient update
             d_w_ii = fabs(w[ii] - w_ii)
@@ -268,6 +285,8 @@ def enet_coordinate_descent(np.ndarray[floating, ndim=1] w,
             if fabs(w[ii]) > w_max:
                 w_max = fabs(w[ii])
 
+        print("final R")
+        print(R)
         if (w_max == 0.0
             or d_w_max / w_max < d_w_tol
             or n_iter == max_iter - 1):
